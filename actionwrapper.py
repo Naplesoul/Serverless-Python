@@ -1,4 +1,4 @@
-import traceback
+import random
 import json
 from kafka import KafkaProducer, KafkaConsumer
 from kafka.errors import kafka_errors
@@ -7,6 +7,7 @@ from serverless import Request, Response, Evoke
 from userland import action
 
 kafka_addr = 'localhost:9092'
+partition_cnt = 10
 
 
 def wrapper():
@@ -26,43 +27,53 @@ def wrapper():
 
     for msg in consumer:
         req = Request(msg.value['params'], msg.value['path'], msg.value['body'])
-        output = action.action(req)
 
-        if isinstance(output, Evoke):
-            topic_next = output.action_name()
-            val_next = {
-                'requestUID': msg.value['requestUID'],
-                'returnTopic': msg.value['returnTopic'],
-                'params': output.params(),
-                'path': output.path(),
-                'body': output.body()
-            }
-        elif isinstance(output, Response):
-            topic_next = msg.value['returnTopic']
-            val_next = {
-                'requestUID': msg.value['requestUID'],
-                'statusCode': 200,
-                'payload': output.payload()
-            }
-        else:
+        try:
+            output = action.action(req)
+
+            if isinstance(output, Evoke):
+                topic_next = output.action_name()
+                val_next = {
+                    'requestUID': msg.value['requestUID'],
+                    'returnTopic': msg.value['returnTopic'],
+                    'params': output.params(),
+                    'path': output.path(),
+                    'body': output.body()
+                }
+            elif isinstance(output, Response):
+                topic_next = msg.value['returnTopic']
+                val_next = {
+                    'requestUID': msg.value['requestUID'],
+                    'statusCode': 200,
+                    'payload': output.payload()
+                }
+            else:
+                raise RuntimeError("unexpected return value")
+
+        except Exception as e:
             topic_next = msg.value['returnTopic']
             val_next = {
                 'requestUID': msg.value['requestUID'],
                 'statusCode': 500,
-                'payload': "unexpected return value"
+                'payload': repr(e)
             }
 
-        future = producer.send(
-            topic_next,
-            value=val_next
-        )
+        try:
+            future = producer.send(
+                topic_next,
+                value=val_next,
+                partition=random.randint(0, partition_cnt - 1)
+            )
+            future.get(timeout=3)
+
+        except kafka_errors:
+            produce_fail()
 
         consumer.commit()
 
-        try:
-            future.get(timeout=10)  # 监控是否发送成功
-        except kafka_errors:  # 发送失败抛出kafka_errors
-            traceback.format_exc()
+
+def produce_fail():
+    print("fail to produce")
 
 
 if __name__ == '__main__':
