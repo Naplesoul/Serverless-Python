@@ -129,5 +129,8 @@ if __name__ == "__main__":
     action_name = sys.argv[2]
     invoke_actions = sys.argv[3:]
 
+    print("kafka server:", kafka_addr)
+    print("action name:", action_name)
+    print("invoke actions:", invoke_actions)
     random.seed()
     wrapper()

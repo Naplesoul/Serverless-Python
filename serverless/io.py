@@ -1,5 +1,19 @@
 from http import HTTPStatus
-from serverless import ContentType
+from enum import Enum
+
+
+class ContentType(Enum):
+    MIMEJSON = "application/json"
+    MIMEHTML = "text/html"
+    MIMEXML = "application/xml"
+    MIMEXML2 = "text/xml"
+    MIMEPlain = "text/plain"
+    MIMEPOSTForm = "application/x-www-form-urlencoded"
+    MIMEMultipartPOSTForm = "multipart/form-data"
+    MIMEPROTOBUF = "application/x-protobuf"
+    MIMEMSGPACK = "application/x-msgpack"
+    MIMEMSGPACK2 = "application/msgpack"
+    MIMEYAML = "application/x-yaml"
 
 
 class Request:
