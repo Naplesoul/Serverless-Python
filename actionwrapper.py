@@ -15,13 +15,13 @@ kafka_addr = "localhost:9092"
 partition_cnt = 6
 
 monitor_topic = "action-monitor"
-action_name = "default_action"
+action_name = "default_TOPIC"
 invoke_actions = []
 
 
 def wrapper():
     consumer = KafkaConsumer(
-        action_name,
+        "{}_TOPIC".format(action_name),
         bootstrap_servers=kafka_addr,
         group_id=action_name,
         enable_auto_commit=False,
@@ -45,7 +45,7 @@ def wrapper():
 
         invoke_next = False
         if isinstance(output, Invoke):
-            topic_next = output.invoke_action()
+            topic_next = "{}_TOPIC".format(output.invoke_action())
 
             # legal invocation
             if topic_next in invoke_actions:
