@@ -1,3 +1,21 @@
+from http import HTTPStatus
+from enum import Enum
+
+
+class ContentType(Enum):
+    MIMEJSON = "application/json"
+    MIMEHTML = "text/html"
+    MIMEXML = "application/xml"
+    MIMEXML2 = "text/xml"
+    MIMEPlain = "text/plain"
+    MIMEPOSTForm = "application/x-www-form-urlencoded"
+    MIMEMultipartPOSTForm = "multipart/form-data"
+    MIMEPROTOBUF = "application/x-protobuf"
+    MIMEMSGPACK = "application/x-msgpack"
+    MIMEMSGPACK2 = "application/msgpack"
+    MIMEYAML = "application/x-yaml"
+
+
 class Request:
     def __init__(self,
                  params: {},
@@ -17,19 +35,19 @@ class Request:
         return self._body
 
 
-class Evoke:
+class Invoke:
     def __init__(self,
-                 action_name: str,
+                 invoke_action: str,
                  params: {} = {},
                  path: str = "",
                  body: str = ""):
-        self._action_name = action_name
+        self._invoke_action = invoke_action
         self._params = params
         self._path = path
         self._body = body
 
-    def action_name(self) -> str:
-        return self._action_name
+    def invoke_action(self) -> str:
+        return self._invoke_action
 
     def params(self) -> {}:
         return self._params
@@ -42,8 +60,19 @@ class Evoke:
 
 
 class Response:
-    def __init__(self, payload: str):
+    def __init__(self,
+                 payload: str,
+                 http_status: int = HTTPStatus.OK,
+                 content_type: ContentType = ContentType.MIMEPlain):
         self._payload = payload
+        self._http_status = http_status
+        self._content_type = content_type
+
+    def content_type(self) -> ContentType:
+        return self._content_type
 
     def payload(self) -> str:
         return self._payload
+
+    def http_status(self) -> int:
+        return self._http_status

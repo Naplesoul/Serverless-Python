@@ -1,3 +1,3 @@
-from serverless.io import Request, Response, Evoke
+from serverless.io import Request, Response, Invoke, ContentType
 
-__all__ = ['Request', 'Response', 'Evoke']
+__all__ = ["Request", "Response", "Invoke", "ContentType"]
