@@ -27,12 +27,10 @@ def wrapper():
         bootstrap_servers=kafka_addr,
         group_id=action_name,
         enable_auto_commit=False,
-        key_deserializer=lambda k: json.loads(k.decode()),
         value_deserializer=lambda v: json.loads(v.decode()),
     )
     producer = KafkaProducer(
         bootstrap_servers=[kafka_addr],
-        key_serializer=lambda k: json.dumps(k).encode(),
         value_serializer=lambda v: json.dumps(v).encode()
     )
 
