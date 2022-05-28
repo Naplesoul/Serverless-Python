@@ -2,11 +2,11 @@ import random
 import json
 import sys
 import time
+import logging
 
 from http import HTTPStatus
 
 from kafka import KafkaProducer, KafkaConsumer
-from kafka.errors import kafka_errors
 
 from serverless import Request, Response, Invoke, ContentType
 from userland import action
@@ -17,6 +17,8 @@ partition_cnt = 6
 monitor_topic = "action-monitor"
 action_name = "default_TOPIC"
 invoke_actions = []
+
+logger = logging.getLogger("logger")
 
 
 def wrapper():
@@ -38,10 +40,13 @@ def wrapper():
         req = Request(msg.value["params"], msg.value["triggerPath"], msg.value["payload"])
 
         try:
+            logger.info("Invoking user action...")
             output = action.action(req)
+            logger.info("User action returned.")
         except Exception as e:
+            logger.error("Caught an exception in user action, err: {}".format(repr(e)))
             output = Response("Failure in action {}: {}.".format(action_name, repr(e)),
-                              HTTPStatus.INTERNAL_SERVER_ERROR)
+                              http_status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
         invoke_next = False
         if isinstance(output, Invoke):
@@ -63,8 +68,8 @@ def wrapper():
                 topic_next = msg.value["returnTopic"]
                 val_next = {
                     "requestUID": msg.value["requestUID"],
-                    "statusCode": HTTPStatus.INTERNAL_SERVER_ERROR,
-                    "contentType": ContentType.MIMEPlain,
+                    "statusCode": int(HTTPStatus.INTERNAL_SERVER_ERROR),
+                    "contentType": ContentType.MIMEPlain.value,
                     "payload": "Invoking {} in {} is not allowed.".format(topic_next, action_name)
                 }
 
@@ -73,8 +78,8 @@ def wrapper():
             topic_next = msg.value["returnTopic"]
             val_next = {
                 "requestUID": msg.value["requestUID"],
-                "statusCode": output.http_status(),
-                "contentType": output.content_type(),
+                "statusCode": int(output.http_status()),
+                "contentType": output.content_type().value,
                 "payload": output.payload()
             }
 
@@ -83,12 +88,14 @@ def wrapper():
             topic_next = msg.value["returnTopic"]
             val_next = {
                 "requestUID": msg.value["requestUID"],
-                "statusCode": HTTPStatus.INTERNAL_SERVER_ERROR,
-                "contentType": ContentType.MIMEPlain,
+                "statusCode": int(HTTPStatus.INTERNAL_SERVER_ERROR),
+                "contentType": ContentType.MIMEPlain.value,
                 "payload": "Illegal return type in action {}.".format(action_name)
             }
 
         try:
+            logger.info("Produce message\ttopic={}\tvalue={}.".format(topic_next, val_next))
+
             if invoke_next:
                 future_action = producer.send(
                     topic_next,
@@ -113,24 +120,32 @@ def wrapper():
                 )
                 future.get(timeout=3)
 
-        except kafka_errors:
-            print("Producer send timeout")
+        except Exception as e:
+            logger.error("Producer send fail, err: {}.".format(repr(e)))
 
         consumer.commit()
 
 
 if __name__ == "__main__":
+    logger.setLevel(logging.INFO)
+    fh = logging.FileHandler("./userland/action.log", encoding="UTF-8")
+    ft = logging.Formatter(fmt="%(asctime)s %(filename)s %(levelname)s %(message)s",
+                                 datefmt="%Y/%m/%d %X")
+    fh.setFormatter(ft)
+    logger.addHandler(fh)
+
     args = len(sys.argv)
     if args < 3:
-        print("Missing arguments.")
+        logger.error("Missing arguments.")
         exit(-1)
 
     kafka_addr = sys.argv[1]
     action_name = sys.argv[2]
     invoke_actions = sys.argv[3:]
 
-    print("kafka server:", kafka_addr)
-    print("action name:", action_name)
-    print("invoke actions:", invoke_actions)
+    logger.info("Set kafka server: {}.".format(kafka_addr))
+    logger.info("Set action name: {}.".format(action_name))
+    logger.info("Set invoke actions: {}.".format(invoke_actions))
+
     random.seed()
     wrapper()

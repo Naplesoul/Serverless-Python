@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from enum import Enum
+from typing import Dict
 
 
 class ContentType(Enum):
@@ -18,7 +19,7 @@ class ContentType(Enum):
 
 class Request:
     def __init__(self,
-                 params: {},
+                 params: Dict,
                  path: str,
                  body: str):
         self._params = params
@@ -38,7 +39,7 @@ class Request:
 class Invoke:
     def __init__(self,
                  invoke_action: str,
-                 params: {} = {},
+                 params: Dict = {},
                  path: str = "",
                  body: str = ""):
         self._invoke_action = invoke_action
@@ -49,7 +50,7 @@ class Invoke:
     def invoke_action(self) -> str:
         return self._invoke_action
 
-    def params(self) -> {}:
+    def params(self) -> Dict:
         return self._params
 
     def path(self) -> str:
