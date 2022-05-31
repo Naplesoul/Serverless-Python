@@ -92,7 +92,7 @@ def wrapper(msg):
             future_monitor = producer.send(
                 monitor_topic,
                 value={
-                    "time": int(time.time()),
+                    "time": int(time.time()*1000),
                     "action": topic_next
                 }
             )
