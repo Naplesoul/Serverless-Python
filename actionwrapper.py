@@ -38,10 +38,11 @@ def wrapper(msg):
 
     invoke_next = False
     if isinstance(output, Invoke):
-        topic_next = "{}_TOPIC".format(output.invoke_action())
-
         # legal invocation
-        if topic_next in invoke_actions:
+        invoke_action = output.invoke_action()
+        if invoke_action in invoke_actions:
+            invoke_next = True
+            topic_next = "{}_TOPIC".format(invoke_action)
             val_next = {
                 "requestUID": msg.value["requestUID"],
                 "returnTopic": msg.value["returnTopic"],
@@ -49,7 +50,6 @@ def wrapper(msg):
                 "triggerPath": output.path(),
                 "payload": output.body()
             }
-            invoke_next = True
 
         # illegal invocation
         else:
@@ -58,7 +58,7 @@ def wrapper(msg):
                 "requestUID": msg.value["requestUID"],
                 "statusCode": int(HTTPStatus.INTERNAL_SERVER_ERROR),
                 "contentType": ContentType.MIMEPlain.value,
-                "payload": "Invoking {} in {} is not allowed.".format(topic_next, action_name)
+                "payload": "Invoking {} in {} is not allowed.".format(invoke_action, action_name)
             }
 
     elif isinstance(output, Response):
@@ -93,7 +93,7 @@ def wrapper(msg):
                 monitor_topic,
                 value={
                     "time": int(time.time()*1000),
-                    "action": topic_next
+                    "action": invoke_next
                 }
             )
 
