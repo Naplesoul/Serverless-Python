@@ -37,10 +37,11 @@ def wrapper(msg):
                           http_status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     invoke_next = False
+    invoke_action = ""
     if isinstance(output, Invoke):
-        # legal invocation
         invoke_action = output.invoke_action()
         if invoke_action in invoke_actions:
+            # legal invocation
             invoke_next = True
             topic_next = "{}_TOPIC".format(invoke_action)
             val_next = {
@@ -51,8 +52,8 @@ def wrapper(msg):
                 "payload": output.body()
             }
 
-        # illegal invocation
         else:
+            # illegal invocation
             topic_next = msg.value["returnTopic"]
             val_next = {
                 "requestUID": msg.value["requestUID"],
@@ -93,7 +94,7 @@ def wrapper(msg):
                 monitor_topic,
                 value={
                     "time": int(time.time()*1000),
-                    "action": invoke_next
+                    "action": invoke_action
                 }
             )
 
